@@ -3,7 +3,7 @@
 **Step_Counter** is a lightweight, modular step-counting library for ESP32 / Arduino.  
 It detects steps using accelerometer + gyroscope, filters false steps, and optionally validates steps using a heart-rate sensor.
 
-It is designed to work **standalone** or on top of the [MotionSensor](https://github.com/10ish01/MotionSensor) library, making it easy to integrate into existing projects.
+It is designed to work **standalone** or on top of the [MotionSensor](https://github.com/10ish01/MotionControl-ESP) library, making it easy to integrate into existing projects.
 
 ---
 
