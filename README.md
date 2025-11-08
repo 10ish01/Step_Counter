@@ -64,7 +64,7 @@ Step_Counter can work **two ways**:
 ## Quick Start
 
 ## 🔹 Standalone Step Counter (basis MPU6886 - you can modify to your imu easily)
-## Connect your IMU to default SDA and SCL pins for your board (21 and 22 for ESP32, respectively)
+Connect your IMU to default SDA and SCL pins for your board (21 and 22 for ESP32, respectively)
 ```cpp
 #include <Wire.h>
 #include "StepCounter.h"   /
