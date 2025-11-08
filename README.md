@@ -1,0 +1,2 @@
+### StepCounter for ESP32
+A lightweight step detection library for ESP32 that uses onboard motion sensors (like the MPU6886) to accurately count steps in real time — ideal for wearable and fitness projects.
