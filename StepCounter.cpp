@@ -4,7 +4,24 @@
 StepCounter::StepCounter() {}
 StepCounter::StepCounter(MotionSensor *sensor) : imu(sensor) {}
 
-void StepCounter::begin() {
+void StepCounter::begin(int resetPin) {
+    EEPROM.begin(32);
+    resetButtonPin = resetPin;
+
+    if (resetButtonPin != -1) {
+        pinMode(resetButtonPin, INPUT_PULLUP);
+        unsigned long start = millis();
+        while (millis() - start < 3000) {  // 3 sec window
+            if (digitalRead(resetButtonPin) == LOW) {
+                Serial.println("Threshold reset triggered!");
+                resetThresholdsToDefault();
+                break;
+            }
+            delay(50);
+        }
+    }
+
+    loadThresholdsFromEEPROM();
     stepCount = 0;
     lastStepTime = 0;
 }
@@ -33,9 +50,6 @@ void StepCounter::update(float ax, float ay, float az, float gx, float gy, float
 }
 
 bool StepCounter::detectStep(float accelMag, float gyroMag) {
-    // Thresholds can be tuned experimentally
-    const float accelThresh = 1.15;  // g's
-    const float gyroPeak = 150.0;    // deg/s (to reject shakes)
     unsigned long now = millis();
 
     bool stepDetected = (accelMag > accelThresh && gyroMag < gyroPeak);
@@ -48,4 +62,51 @@ bool StepCounter::detectStep(float accelMag, float gyroMag) {
 
 int StepCounter::getStepCount() {
     return stepCount;
+}
+
+void StepCounter::setAccelThreshold(float threshold) {
+    if (threshold > 0.5 && threshold < 3.0) {
+        accelThresh = threshold;
+        saveThresholdsToEEPROM();
+    }
+}
+
+void StepCounter::setGyroPeak(float peak) {
+    if (peak > 50 && peak < 500) {
+        gyroPeak = peak;
+        saveThresholdsToEEPROM();
+    }
+}
+
+float StepCounter::getAccelThreshold() const { return accelThresh; }
+float StepCounter::getGyroPeak() const { return gyroPeak; }
+
+void StepCounter::saveThresholdsToEEPROM() {
+    int addr = EEPROM_START_ADDR;
+    EEPROM.put(addr, accelThresh);
+    addr += sizeof(float);
+    EEPROM.put(addr, gyroPeak);
+    EEPROM.commit();
+}
+
+void StepCounter::loadThresholdsFromEEPROM() {
+    int addr = EEPROM_START_ADDR;
+    float a, g;
+    EEPROM.get(addr, a);
+    addr += sizeof(float);
+    EEPROM.get(addr, g);
+
+    if (a > 0.5 && a < 3.0 && g > 50 && g < 500) {
+        accelThresh = a;
+        gyroPeak = g;
+    } else {
+        resetThresholdsToDefault();
+    }
+}
+
+void StepCounter::resetThresholdsToDefault(bool save) {
+    accelThresh = 1.15;
+    gyroPeak = 150.0;
+    if (save) saveThresholdsToEEPROM();
+    Serial.println("Thresholds reset to default!");
 }
