@@ -168,6 +168,10 @@ A standalone utility for managing persistent storage of:
 - BLE settings
 - Miscellaneous data
 
+Sync step data externally at least once every 7 days to avoid losing records
+
+You can adapt this code or integrate it into your existing project for EEPROM management.
+
 Features: 
 -Store daily step counts in a rolling history (configurable up to 7 days).
 
@@ -179,6 +183,7 @@ Features:
 
 -Centralized EEPROM management to avoid conflicts in larger projects.
 
+Example Usage 
 ```cpp
 #include <Arduino.h>
 #include "EEPROMManager.h"
