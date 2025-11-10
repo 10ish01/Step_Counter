@@ -1,46 +1,43 @@
 #pragma once
 #include <Arduino.h>
-#include "HRValidator.h"
-
-class MotionSensor;
 
 class StepCounter {
 public:
+    enum State {
+        IDLE,
+        WALKING,
+        RUNNING
+    };
+
     StepCounter();
-    StepCounter(MotionSensor *sensor);
 
-    void begin();  
-    void update(float ax, float ay, float az, float gx = 0, float gy = 0, float gz = 0);
-    int getStepCount();
+    void begin();
+    void update(float ax, float ay, float az, float gx, float gy, float gz);
+    uint32_t getStepCount();
 
-    // HR validation
-    void enableHRValidation(HRValidator *validator);
-    void disableHRValidation();
-
-    // Threshold configuration (runtime only)
-    void setThresholds(float upper, float lower, float gyro);
-    void resetThresholds();
-
-    // Accessors
-    float getUpperThresh() const { return upperThresh; }
-    float getLowerThresh() const { return lowerThresh; }
-    float getGyroPeak()   const { return gyroPeak; }
+    // --- NEW ---
+    State getCurrentState() const;
+    float getCadence() const;   // <-- returns average steps per minute
 
 private:
-    MotionSensor *imu = nullptr;
-    HRValidator *hrValidator = nullptr;
-    bool hrValidationEnabled = false;
+    State currentState;
 
-    int stepCount = 0;
-    unsigned long lastStepTime = 0;
+    uint32_t stepCount;
+    unsigned long lastStepTime;
+    unsigned long lastActiveTime;
 
-    // Thresholds (runtime)
-    float upperThresh = 1.20;
-    float lowerThresh = 0.95;
-    float gyroPeak = 150.0;
+    float accelThresh;
+    float gyroThresh;
+    unsigned long stepGap;
 
-    const unsigned long minStepGap = 300;  // ms
-    bool stepActive = false;
+    bool stepDetected;
 
-    bool detectStep(float accelMag, float gyroMag);
+
+    static const int CADENCE_WINDOW = 5; // last 5 step intervals
+    unsigned long stepIntervals[CADENCE_WINDOW];
+    int intervalIndex;
+    bool intervalFilled;
+
+    bool detectStep(float ax, float ay, float az, float gx, float gy, float gz);
+    void setState(State newState);
 };
