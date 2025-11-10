@@ -17,27 +17,26 @@ It is designed to work **standalone** or on top of the [MotionSensor](https://gi
 
 ---
 
-## Repository Structure
 
 
 ## Features
 
-- IMU-based step detection (accelerometer + gyroscope)  
-- Filters out false steps caused by shakes or random hand movements  
-- Optional heart-rate validation (MAX30102 or any other HR sensor)  
-- Works standalone or with MotionSensor library  
-- Easy to integrate, configure, and extend  
+- IMU-based step detection (accelerometer + gyroscope)    
+- Filters out false steps caused by shakes or random hand movements    
+- Optional heart-rate validation (MAX30102 or any other HR sensor)    
+- Works standalone or with MotionSensor library    
+- Easy to integrate, configure, and extend    
 
 ---
 
 ## Repository Structure
 
-/StepCounter/
-├── StepCounter.h/.cpp # Core step counter logic
-├── HRValidator.h # Abstract interface for HR validation
-├── MAX30102Validator.cpp # Example HR validator
-├── examples/
-├── utils/
+StepCounter/
+├── StepCounter.h/.cpp # Core step counter logic  
+├── HRValidator.h # Abstract interface for HR validation  
+├── MAX30102Validator.cpp # Example HR validator  
+├── examples/  
+├── utils/  
      └── EEPROMManager.h/.cpp   # optional EEPROM utility
 
 
@@ -45,8 +44,8 @@ It is designed to work **standalone** or on top of the [MotionSensor](https://gi
 
 Step_Counter can work **two ways**:
 
-1. **Standalone** — Directly reads IMU values from your device.  
-2. **With MotionSensor library** — Leverages MotionSensor’s accelerometer & gyroscope driver for easier integration.
+1. **Standalone** — Directly reads IMU values from your device.    
+2. **With MotionSensor library** — Leverages MotionSensor’s accelerometer & gyroscope driver for easier integration.  
 
 
 1. **Acceleration Magnitude + Hysteresis**: Detects steps when acceleration rises above `upperThresh` and falls below `lowerThresh`. Prevents double-counting.
