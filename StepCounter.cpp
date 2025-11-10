@@ -108,5 +108,5 @@ void StepCounter::resetThresholdsToDefault(bool save) {
     accelThresh = 1.15;
     gyroPeak = 150.0;
     if (save) saveThresholdsToEEPROM();
-    Serial.println("Thresholds reset to default!");
+    
 }
