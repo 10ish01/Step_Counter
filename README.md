@@ -31,7 +31,7 @@ It is designed to work **standalone** or on top of the [MotionSensor](https://gi
 
 ## Repository Structure
 
-StepCounter/
+StepCounter/  
 ├── StepCounter.h/.cpp # Core step counter logic  
 ├── HRValidator.h # Abstract interface for HR validation  
 ├── MAX30102Validator.cpp # Example HR validator  
@@ -171,7 +171,7 @@ Sync step data externally at least once every 7 days to avoid losing records
 
 You can adapt this code or integrate it into your existing project for EEPROM management.
 
-Features: 
+Features:   
 -Store daily step counts in a rolling history (configurable up to 7 days).
 
 -Maintain a current step count that updates at the end of the day.
@@ -227,8 +227,8 @@ void loop() {
 }
 ```
 
-This library **is not required** for StepCounter to work.  
-It can be used if you want centralized EEPROM management across your project.
+(This library **is not required** for Step_Counter to work.  
+It can be used if you want centralized EEPROM management across your project.)
 
 
 ### Future Enhancements
