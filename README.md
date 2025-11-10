@@ -36,9 +36,9 @@ It is designed to work **standalone** or on top of the [MotionSensor](https://gi
 ├── StepCounter.h/.cpp # Core step counter logic
 ├── HRValidator.h # Abstract interface for HR validation
 ├── MAX30102Validator.cpp # Example HR validator
-└── examples/
-├── basic_step_counter.ino # Standalone IMU example
-
+├── examples/
+├── utils/
+     └── EEPROMManager.h/.cpp   # optional EEPROM utility
 
 
 ## How It Works
@@ -157,6 +157,75 @@ Optionally enable HRValidator.
 Call getStepCount() to retrieve steps.
 
 Optional: extend with stride length, activity detection, or distance estimation.
+
+
+## Optional Utilities
+
+### EEPROMManager
+A standalone utility for managing persistent storage of:
+- Step history (day-wise)
+- General device settings
+- BLE settings
+- Miscellaneous data
+
+Features: 
+-Store daily step counts in a rolling history (configurable up to 7 days).
+
+-Maintain a current step count that updates at the end of the day.
+
+-Track day pointer to know which day in the history is active.
+
+-Flexible API for reading, updating, and syncing step data.
+
+-Centralized EEPROM management to avoid conflicts in larger projects.
+
+```cpp
+#include <Arduino.h>
+#include "EEPROMManager.h"
+
+EEPROMManager eeprom;
+
+void setup() {
+  Serial.begin(115200);
+
+  // Initialize EEPROM manager
+  eeprom.begin();
+
+  // Example: Load current step count from EEPROM
+  uint16_t todaySteps = eeprom.loadStepCount();
+  Serial.print("Current steps today: ");
+  Serial.println(todaySteps);
+
+  // Example: Increment step count
+  todaySteps += 123; // Suppose you counted 123 new steps
+  eeprom.saveStepCount(todaySteps);
+
+  // Example: Finalize the day (store today's steps in history, advance day pointer)
+  eeprom.finalizeDay(todaySteps);
+
+  // Example: Retrieve last 7 days of step history
+  uint16_t history[7];
+  eeprom.getStepHistory(history);
+  Serial.println("Last 7 days of steps:");
+  for (int i = 0; i < 7; i++) {
+    Serial.print("Day ");
+    Serial.print(i + 1);
+    Serial.print(": ");
+    Serial.println(history[i]);
+  }
+
+  // Example: Clear step history
+  // eeprom.clearStepHistory();
+}
+
+void loop() {
+  // Your main step counting code here
+}
+```
+
+This library **is not required** for StepCounter to work.  
+It can be used if you want centralized EEPROM management across your project.
+
 
 ### Future Enhancements
 Adaptive thresholding
