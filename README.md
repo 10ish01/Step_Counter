@@ -49,10 +49,10 @@ Step_Counter can work **two ways**:
 2. **With MotionSensor library** — Leverages MotionSensor’s accelerometer & gyroscope driver for easier integration.
 
 
-1. **Acceleration Magnitude**: Detects steps when magnitude exceeds threshold (~1.15 g).  
+1. **Acceleration Magnitude + Hysteresis**: Detects steps when acceleration rises above `upperThresh` and falls below `lowerThresh`. Prevents double-counting.
    `mag = sqrt(ax^2 + ay^2 + az^2)`
 
-2. **Gyroscope Peak Filtering**: Ignores shakes (`gyroMag > 150 °/s`).  
+2. **Gyroscope Peak Filtering**: Ignores shakes (`gyroMag < gyroPeak`).  
    `gyroMag = sqrt(gx^2 + gy^2 + gz^2)`
 
 3. **Minimum Time Gap**: Avoids double-counting (~300 ms between steps).
@@ -67,7 +67,7 @@ Step_Counter can work **two ways**:
 Connect your IMU to default SDA and SCL pins for your board (21 and 22 for ESP32, respectively)
 ```cpp
 #include <Wire.h>
-#include "StepCounter.h"   /
+#include "StepCounter.h"   
 
 #define MPU6886_ADDR 0x68  // I2C address
 
@@ -137,12 +137,6 @@ void loop() {
 }
 ```
 
-### Configuration / Tuning
-Parameter	Default   Description
-accelThresh	1.15 g	  Minimum acceleration magnitude for a step
-gyroPeak	150 °/s	  Max gyro magnitude to reject shakes
-stepGap	    300 ms	  Minimum time between consecutive steps
-HR delta	+10 BPM	  Heart-rate rise above baseline for confirmation
 
 # Integration Philosophy
 StepCounter — Core step detection algorithm
