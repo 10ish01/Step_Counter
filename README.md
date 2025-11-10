@@ -161,11 +161,7 @@ Optional: extend with stride length, activity detection, or distance estimation.
 ## Optional Utilities
 
 ### EEPROMManager
-A standalone utility for managing persistent storage of:
-- Step history (day-wise)
-- General device settings
-- BLE settings
-- Miscellaneous data
+A standalone utility for managing persistent storage of step history (day-wise)
 
 Sync step data externally at least once every 7 days to avoid losing records
 
