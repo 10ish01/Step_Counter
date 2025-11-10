@@ -1,6 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include <EEPROM.h>
 #include "HRValidator.h"
 
 class MotionSensor;
@@ -10,7 +9,7 @@ public:
     StepCounter();
     StepCounter(MotionSensor *sensor);
 
-    void begin(int resetPin = -1);   // optional reset pin
+    void begin();  
     void update(float ax, float ay, float az, float gx = 0, float gy = 0, float gz = 0);
     int getStepCount();
 
@@ -18,16 +17,14 @@ public:
     void enableHRValidation(HRValidator *validator);
     void disableHRValidation();
 
-    // Threshold configuration
-    void setAccelThreshold(float threshold);
-    void setGyroPeak(float peak);
-    float getAccelThreshold() const;
-    float getGyroPeak() const;
-    void resetThresholdsToDefault(bool save = true);
+    // Threshold configuration (runtime only)
+    void setThresholds(float upper, float lower, float gyro);
+    void resetThresholds();
 
-    // EEPROM persistence
-    void saveThresholdsToEEPROM();
-    void loadThresholdsFromEEPROM();
+    // Accessors
+    float getUpperThresh() const { return upperThresh; }
+    float getLowerThresh() const { return lowerThresh; }
+    float getGyroPeak()   const { return gyroPeak; }
 
 private:
     MotionSensor *imu = nullptr;
@@ -37,14 +34,13 @@ private:
     int stepCount = 0;
     unsigned long lastStepTime = 0;
 
-    float accelThresh = 1.15;
+    // Thresholds (runtime)
+    float upperThresh = 1.20;
+    float lowerThresh = 0.95;
     float gyroPeak = 150.0;
 
-    bool detectStep(float mag, float gyroMag);
+    const unsigned long minStepGap = 300;  // ms
+    bool stepActive = false;
 
-    // EEPROM layout
-    static constexpr int EEPROM_START_ADDR = 0;
-
-    // Reset button support
-    int resetButtonPin = -1;
+    bool detectStep(float accelMag, float gyroMag);
 };
