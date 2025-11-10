@@ -1,5 +1,5 @@
 #include <Wire.h>
-#include "StepCounter.h"   // Your standalone step counter header
+#include "StepCounter.h"   
 
 #define MPU6886_ADDR 0x68  // I2C address
 
