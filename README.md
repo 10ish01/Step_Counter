@@ -7,16 +7,6 @@ It is designed to work **standalone** or on top of the [MotionSensor](https://gi
 
 ---
 
-## Features
-
-- IMU-based step detection (accelerometer + gyroscope)  
-- Filters out false steps caused by shakes or random hand movements  
-- Optional heart-rate validation (MAX30102 or any other HR sensor)  
-- Works standalone or with MotionSensor library  
-- Easy to integrate, configure, and extend  
-
----
-
 
 
 ## Features
@@ -48,16 +38,21 @@ Step_Counter can work **two ways**:
 2. **With MotionSensor library** — Leverages MotionSensor’s accelerometer & gyroscope driver for easier integration.  
 
 
-1. **Acceleration Magnitude + Hysteresis**: Detects steps when acceleration rises above `upperThresh` and falls below `lowerThresh`. Prevents double-counting.
-   `mag = sqrt(ax^2 + ay^2 + az^2)`
+1. **Acceleration + Gyroscope Filtering**- A step is detected when total acceleration magnitude exceeds a threshold (accelThresh) and gyroscope activity remains below a limit (gyroThresh).
+This filters out random hand or body shakes.  
+aMag = sqrt(ax² + ay² + az²)  
+gMag = sqrt(gx² + gy² + gz²)  
 
-2. **Gyroscope Peak Filtering**: Ignores shakes (`gyroMag < gyroPeak`).  
-   `gyroMag = sqrt(gx^2 + gy^2 + gz^2)`
+2. **Minimum Step Gap**-  Ensures at least ~300 ms between consecutive steps to prevent double-counting.  
 
-3. **Minimum Time Gap**: Avoids double-counting (~300 ms between steps).
+3. **Cadence-Based Walking Confirmation**- Initially, short bursts of steps are buffered while the device is in IDLE, the algorithm computes the average step interval for the recent window (≈ 5 steps).  
+If the average interval lies within a walking range (≈ 350 – 1800 ms), walking is confirmed.  
+Once confirmed, all buffered steps are added, and the system enters the WALKING state.
 
-4. **Optional Heart-Rate Validation**: Steps counted only if HR rises above baseline (+10 BPM).
+4. **Idle Transition (Inactivity Timeout)**- If no step is detected for more than 2 s, the system returns to IDLE and resets cadence tracking.  
 
+5. **Live Cadence Reporting**- During walking, a short-term average cadence is computed continuously using recent step intervals:  
+Cadence = 60000 / avgStepInterval_ms  // steps per minute   
 ---
 
 ## Quick Start
