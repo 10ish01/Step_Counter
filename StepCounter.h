@@ -1,9 +1,6 @@
 #pragma once
 #include <Arduino.h>
 
-// ------------------------------
-// StepCounter Class Declaration
-// ------------------------------
 class StepCounter {
 public:
     StepCounter();
@@ -11,42 +8,30 @@ public:
     void begin();
     void update(float ax, float ay, float az, float gx, float gy, float gz);
 
-    uint32_t getStepCount();
+    unsigned long getStepCount() const;
     float getCadence() const;
-
-    enum State { IDLE, WALKING, RUNNING };
-    State getCurrentState() const;
+    bool isWalking() const;
 
 private:
-    // --- Internal State ---
-    State currentState;
-    uint32_t stepCount;
-    bool stepDetected;
-
-    // --- Thresholds and Parameters ---
-    float accelThresh;    // Acceleration threshold (g)
-    float gyroThresh;     // Gyroscope magnitude limit (°/s)
-    unsigned long stepGap; // Minimum gap between valid steps (ms)
-
-    // --- Timing ---
-    unsigned long lastStepTime;
-    unsigned long lastActiveTime;
-
-    // --- Cadence Tracking ---
-    static const int CADENCE_WINDOW = 4;
-    unsigned long stepIntervals[CADENCE_WINDOW];
-    unsigned long stepTimes[CADENCE_WINDOW];
-    int intervalIndex;
-    bool intervalFilled;
-
-    // --- Walking Confirmation ---
-    int stepBufferIndex;
-    int totalStepsBuffer;
-    bool walkingConfirmed;
-
-    // --- Internal Helpers ---
+    // --- Step detection core ---
     bool detectStep(float ax, float ay, float az, float gx, float gy, float gz);
-    bool checkCadence(unsigned long now);
-    void setState(State newState);
-};
 
+    // --- Step data ---
+    unsigned long stepCount = 0;
+    unsigned long lastStepTime = 0;
+    unsigned long lastMovementTime = 0;
+
+    // --- Cadence tracking ---
+    static const int CADENCE_WINDOW = 5; // number of steps used for average cadence
+    unsigned long stepIntervals[CADENCE_WINDOW];
+    int intervalIndex = 0;
+    bool intervalFilled = false;
+
+    // --- Walking state ---
+    bool walking = false;
+
+    // --- Tuning ---
+    float accelThresh = 1.15f; // g
+    float gyroThresh = 150.0f; // deg/s
+    unsigned long stepGap = 300; // ms minimum between steps
+};
