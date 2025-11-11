@@ -36,7 +36,8 @@ Step_Counter can work **two ways**:
 
 1. **Standalone** — Directly reads IMU values from your device.    
 2. **With MotionSensor library** — Leverages MotionSensor’s accelerometer & gyroscope driver for easier integration.  
-
+  
+### Flow  
 
 1. **Acceleration + Gyroscope Filtering**- A step is detected when total acceleration magnitude exceeds a threshold (accelThresh) and gyroscope activity remains below a limit (gyroThresh).
 This filters out random hand or body shakes.  
