@@ -35,17 +35,20 @@ void StepCounter::update(float ax, float ay, float az, float gx, float gy, float
     unsigned long now = millis();
 
     // --- Update cadence tracking if a step is detected ---
-if (isStep && (now - lastStepTime > stepGap)) {
+if (isStep && (now - lastStepTime > stepGap )) {
     unsigned long interval = now - lastStepTime;
     lastStepTime = now;
-    stepCount++;
+  
 
     stepIntervals[intervalIndex] = interval;
     intervalIndex = (intervalIndex + 1) % CADENCE_WINDOW;
     if (intervalIndex == 0) intervalFilled = true;
 
-    // check cadence when IDLE
     if (currentState == IDLE) checkCadence(now);
+
+    else if (currentState == WALKING) {
+            stepCount++;
+        }
 }
 
 
@@ -60,7 +63,7 @@ if (isStep && (now - lastStepTime > stepGap)) {
             break;
 
         case WALKING:
-        case RUNNING:
+      
             if ((now - lastStepTime) > 2000) {  // 2s inactivity → IDLE
                 setState(IDLE);
                 walkingConfirmed = false;
@@ -119,6 +122,8 @@ StepCounter::State StepCounter::getCurrentState() const {
 
 // --- Cadence Getter ---
 float StepCounter::getCadence() const {
+    if (currentState == IDLE) return 0.0f; 
+
     int count = intervalFilled ? CADENCE_WINDOW : intervalIndex;
     if (count == 0) return 0.0f;
 

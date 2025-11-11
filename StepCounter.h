@@ -33,7 +33,7 @@ private:
     unsigned long lastActiveTime;
 
     // --- Cadence Tracking ---
-    static const int CADENCE_WINDOW = 5;
+    static const int CADENCE_WINDOW = 4;
     unsigned long stepIntervals[CADENCE_WINDOW];
     unsigned long stepTimes[CADENCE_WINDOW];
     int intervalIndex;
