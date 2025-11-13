@@ -39,21 +39,42 @@ Step_Counter can work **two ways**:
   
 ### Flow  
 
-1. **Acceleration + Gyroscope Filtering**- A step is detected when total acceleration magnitude exceeds a threshold (accelThresh) and gyroscope activity remains below a limit (gyroThresh).
-This filters out random hand or body shakes.  
-aMag = sqrt(ax² + ay² + az²)  
-gMag = sqrt(gx² + gy² + gz²)  
+1. **Acceleration + Gyroscope Filtering**-Each frame computes total acceleration and rotation magnitudes:  
 
-2. **Minimum Step Gap**-  Ensures at least ~300 ms between consecutive steps to prevent double-counting.  
+aMag = sqrt(ax² + ay² + az²)
+gMag = sqrt(gx² + gy² + gz²)
+deltaA = |aMag - lastAMag|
+deltaG = |gMag - lastGMag|  
 
-3. **Cadence-Based Walking Confirmation**- Initially, short bursts of steps are buffered while the device is in IDLE, the algorithm computes the average step interval for the recent window (≈ 5 steps).  
-If the average interval lies within a walking range (≈ 350 – 1800 ms), walking is confirmed.  
-Once confirmed, all buffered steps are added, and the system enters the WALKING state.
+The thresholds adapt depending on whether the system is in entry or walking mode.  
 
-4. **Idle Transition (Inactivity Timeout)**- If no step is detected for more than 2 s, the system returns to IDLE and resets cadence tracking.  
+If both exceed limits → flagged as spike (rejected).  
 
-5. **Live Cadence Reporting**- During walking, a short-term average cadence is computed continuously using recent step intervals:  
-Cadence = 60000 / avgStepInterval_ms  // steps per minute   
+If only acceleration crosses threshold while gyro stays low → potential step.  
+  
+2. **Spike Rejection + Penalty System**- Consecutive motion spikes (high accel + gyro) increase a penalty counter.  
+While penalties are active, thresholds tighten and the minimum step gap increases slightly.  
+Penalties decay automatically after ~3 seconds of stability.  
+This prevents false positives from vigorous shakes or abrupt movements.    
+  
+3. **Adaptive Step Validation**- When a raw step candidate passes spike and gap checks, it’s accepted only if:  
+-The time since the previous step is within a valid range (≈300–2500 ms).  
+-The variance of recent step intervals stays low (to ensure rhythm consistency).  
+-Outlier or irregular intervals are ignored.  
+  
+4. **Walking Entry Logic**- In IDLE state, the algorithm temporarily buffers potential steps.  
+If cadence from the recent buffer lies in the walking zone (≈35–120 SPM) for several consecutive detections (~5 steps), walking is confirmed.  
+The buffered steps are then committed, and the state transitions to WALKING.  
+  
+5. **Walking Exit Logic (Inactivity or Drift)**- If no steps occur for > 2.5 s → return to IDLE.  
+If cadence drops below 35 SPM or exceeds 150 SPM for multiple frames → exit WALKING.  
+This ensures stability and quick recovery after pauses.  
+
+6. **Live Cadence Computation**- During walking, cadence is recalculated from recent valid step intervals (≈ 4–6 s window).  
+Outliers are filtered, and a low-pass filter smooths the cadence:  
+smoothCadence = 0.6 * instantCadence + 0.4 * previousCadence    
+  
+Provides a responsive yet stable step rate estimate in real time.   
 ---
 
 ## Quick Start
