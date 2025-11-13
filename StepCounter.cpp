@@ -4,6 +4,7 @@
 
 // --- Constructor ---
 StepCounter::StepCounter() {}
+StepCounter::StepCounter(MotionSensor *sensor) : imu(sensor) {}
 
 void StepCounter::begin() {
     stepCount = 0;
@@ -18,6 +19,7 @@ void StepCounter::begin() {
     lowCadenceFrames = 0;
     currentCadence = 0;
     currentVariance = 0;
+    lastCadence = 0.0f;
     memset(stepTimes, 0, sizeof(stepTimes));
 }
 
@@ -196,7 +198,7 @@ void StepCounter::update(float ax, float ay, float az, float gx, float gy, float
                 bufferedSteps = 0;
 
             // Require consistent cadence stability
-            static float lastCadence = 0;
+
             if (fabs(currentCadence - lastCadence) > 10)
                 bufferedSteps = 0;
 

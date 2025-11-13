@@ -1,5 +1,11 @@
 #pragma once
-#include <Arduino.h>
+#include <Arduino.h>  
+
+
+
+// Optional forward declaration to use MotionSensor if available
+class MotionSensor;
+
 
 class StepCounter {
 public:
@@ -16,7 +22,8 @@ public:
     void disableHRValidation();
 
 private:
-  
+    MotionSensor* imu = nullptr;
+
     HRValidator *hrValidator = nullptr;
     bool hrValidationEnabled = false;
     // --- Step detection core ---
@@ -43,7 +50,7 @@ private:
 
     float currentCadence = 0.0f;
     float currentVariance = 0.0f;
-
+    float lastCadence = 0.0f;
     // --- Walking state ---
     bool walking = false;
 
