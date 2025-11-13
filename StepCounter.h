@@ -12,8 +12,13 @@ public:
     float getCadence() const;
     float getVariance() const;
     bool isWalking() const;
+    void enableHRValidation(HRValidator *validator);
+    void disableHRValidation();
 
 private:
+  
+    HRValidator *hrValidator = nullptr;
+    bool hrValidationEnabled = false;
     // --- Step detection core ---
     bool detectStep(float ax, float ay, float az, float gx, float gy, float gz);
 

@@ -1,4 +1,5 @@
 #include "StepCounter.h"
+#include "HRValidator.h"
 #include <math.h>
 
 // --- Constructor ---
@@ -18,6 +19,16 @@ void StepCounter::begin() {
     currentCadence = 0;
     currentVariance = 0;
     memset(stepTimes, 0, sizeof(stepTimes));
+}
+
+void StepCounter::enableHRValidation(HRValidator* validator) {
+    hrValidator = validator;
+    hrValidationEnabled = true;
+}
+
+void StepCounter::disableHRValidation() {
+    hrValidator = nullptr;
+    hrValidationEnabled = false;
 }
 
 // --- Step detection core ---
@@ -159,6 +170,12 @@ void StepCounter::update(float ax, float ay, float az, float gx, float gy, float
     if (isStepRaw && (now - lastStepTime) > stepGapAdj && (now - lastStepTime) < maxStepGap) {
         lastStepTime = now;
 
+    bool hrOK = true; //optional hr validation
+    if (hrValidationEnabled && hrValidator) {
+        hrValidator->update();     
+        hrOK = hrValidator->isActiveState();
+    }
+    if (!hrOK) return;  // reject if HR inactive
         // Shift step window
         for (int i = 1; i < CADENCE_WINDOW; i++)
             stepTimes[i - 1] = stepTimes[i];
@@ -171,7 +188,8 @@ void StepCounter::update(float ax, float ay, float az, float gx, float gy, float
         if (currentVariance > 80000) return;  // reject irregular pattern
 
         // --- Walking entry with cadence stability ---
-        if (!walking) {
+        
+        if(!walking) {
             if (currentCadence >= 35 && currentCadence <= 120)
                 bufferedSteps++;
             else
@@ -192,8 +210,8 @@ void StepCounter::update(float ax, float ay, float az, float gx, float gy, float
         } else {
             stepCount++;
         }
-    }
-
+    
+    
     // --- Walking exit logic ---
     if (walking) {
         if ((now - lastStepTime) > 2500) {
