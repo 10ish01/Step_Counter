@@ -58,9 +58,10 @@ Penalties decay automatically after ~3 seconds of stability.
 This prevents false positives from vigorous shakes or abrupt movements.    
   
 3. **Adaptive Step Validation**- When a raw step candidate passes spike and gap checks, it’s accepted only if:  
--The time since the previous step is within a valid range (≈300–2500 ms).  
+-The time since the previous step is within a valid range (≈250–2500 ms).  
 -The variance of recent step intervals stays low (to ensure rhythm consistency).  
--Outlier or irregular intervals are ignored.  
+-Outlier or irregular intervals are ignored.    
+Optional HR validation: if enabled, the step is accepted only when the HR validator indicates active physical activity.  
   
 4. **Walking Entry Logic**- In IDLE state, the algorithm temporarily buffers potential steps.  
 If cadence from the recent buffer lies in the walking zone (≈35–120 SPM) for several consecutive detections (~5 steps), walking is confirmed.  
