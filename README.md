@@ -246,14 +246,13 @@ It can be used if you want centralized EEPROM management across your project.)
 
 
 ### Future Enhancements
-Adaptive thresholding
-
-Activity classification: walking / running / idle
+Enhanced Activity classification: driving / walking / running / idle
 
 Stride length estimation
 
 Power-efficient sensor batching
 
+Sleep tracking
 
 ### Notes
 Modular and beginner-friendly
