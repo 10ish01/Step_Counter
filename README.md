@@ -102,12 +102,12 @@ void setup() {
 
   Wire.beginTransmission(MPU6886_ADDR);
   Wire.write(0x1C);
-  Wire.write(0x00); // ±2g
+  Wire.write(0x00); 
   Wire.endTransmission();
 
   Wire.beginTransmission(MPU6886_ADDR);
   Wire.write(0x1B);
-  Wire.write(0x00); // ±250 dps
+  Wire.write(0x00); 
   Wire.endTransmission();
 
   Serial.println("MPU6886 initialized!");
