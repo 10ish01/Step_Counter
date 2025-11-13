@@ -9,137 +9,186 @@ void StepCounter::begin() {
     intervalIndex = 0;
     intervalFilled = false;
     walking = false;
+    bufferedSteps = 0;
+    unstableFrames = 0;
+    spikePenalty = 0;         
+    spikeDecayTimer = 0;      
+    memset(stepTimes, 0, sizeof(stepTimes));
 }
 
-// --- Step detection based on thresholds ---
-bool StepCounter::detectStep(float ax, float ay, float az, float gx, float gy, float gz) {
-    static float lastAMag = 1.0f;  // gravity baseline
+bool StepCounter::detectStep(float ax, float ay, float az, float gx, float gy, float gz) { 
+    static float lastAMag = 1.0f; // gravity baseline 
     static float lastGMag = 0.0f;
-    float aMag = sqrt(ax * ax + ay * ay + az * az);
-    float gMag = sqrt(gx * gx + gy * gy + gz * gz);
 
-    float deltaA = fabs(aMag - lastAMag);
-    float deltaG = fabs(gMag - lastGMag);
-    lastAMag = aMag;
-    lastGMag = gMag;
-    return (deltaA > accelThresh && deltaG < gyroThresh);
+    float aMag = sqrt(ax * ax + ay * ay + az * az); 
+    float gMag = sqrt(gx * gx + gy * gy + gz * gz); 
+
+    float deltaA = fabs(aMag - lastAMag); 
+    float deltaG = fabs(gMag - lastGMag); 
+
+    lastAMag = aMag; 
+    lastGMag = gMag;  
+
+    float aThresh = walking ? accelThresh_walk : accelThresh_entry; 
+    float gThresh = walking ? gyroThresh_walk : gyroThresh_entry; 
+
+    // --- Spike detection ---
+    if (deltaA > aThresh && deltaG > gThresh) {
+        spikePenalty++;
+        spikeDecayTimer = millis();
+        return false; // reject as spike
+    }
+
+    return (deltaA > aThresh && deltaG < gThresh);
 }
 
+
+// --- Step detection and state logic ---
 void StepCounter::update(float ax, float ay, float az, float gx, float gy, float gz) {
     bool isStepRaw = detectStep(ax, ay, az, gx, gy, gz);
     unsigned long now = millis();
 
-    // --- debounce: accept a new "logged" step only if min gap passed ---
-    bool isStep = false;
-    if (isStepRaw) {
-        if (lastStepTime == 0 || (now - lastStepTime) > stepGap) {
-            isStep = true;
-        } else {
-            // Too close to previous accepted step -> treat as bounce and ignore
-            isStep = false;
-        }
+    // --- Gradually decay spike penalty over time ---
+    if (now - spikeDecayTimer > 3000 && spikePenalty > 0) {
+        spikePenalty--;
+        spikeDecayTimer = now;
     }
 
-    // --- If a valid (debounced) step happened, record timestamp and interval ---
-    static unsigned long bufferedSteps = 0; // counts steps before walking is confirmed
+    // --- Adaptive penalties ---
+    float stepGapAdj = stepGap;
+    float accelAdj = walking ? accelThresh_walk : accelThresh_entry;
 
-    if (isStep) {
-        // record timestamp into circular buffer
-        stepTimes[stepBufferIndex] = now;
-        stepBufferIndex = (stepBufferIndex + 1) % CADENCE_WINDOW;
-        if (totalStepsBuffer < CADENCE_WINDOW) totalStepsBuffer++;
+    if (spikePenalty > 3) {
+        stepGapAdj *= 1.3f;
+        accelAdj *= 1.1f;
+    }
 
-        // update pairwise interval for display/use (optional)
-        if (totalStepsBuffer > 1) {
-            // index of previous timestamp (chronologically)
-            int prevIdx = (stepBufferIndex - 2 + CADENCE_WINDOW) % CADENCE_WINDOW;
-            unsigned long interval = now - stepTimes[prevIdx];
+    unsigned long maxStepGap = walking ? 2500 : 2000;
+    if (isStepRaw && (now - lastStepTime) > stepGapAdj && (now - lastStepTime) < maxStepGap) {
+        lastStepTime = now;
 
-            // store interval in stepIntervals at same position as prevIdx
-            stepIntervals[prevIdx] = interval;
+        // Update rolling window
+        for (int i = 1; i < CADENCE_WINDOW; i++)
+            stepTimes[i - 1] = stepTimes[i];
+        stepTimes[CADENCE_WINDOW - 1] = now;
 
-            // mark intervalFilled when we've wrapped at least once
-            if (stepBufferIndex == 0) intervalFilled = true;
+        float cadence = getCadence();
+
+        // --- Variance consistency check ---
+        float variance = 0;
+        int valid = 0;
+        if (CADENCE_WINDOW >= 3) {
+            float avg = 0;
+            float intervals[CADENCE_WINDOW - 1];
+            for (int i = 1; i < CADENCE_WINDOW; i++) {
+                if (stepTimes[i] > stepTimes[i-1]) {
+                    intervals[valid] = stepTimes[i] - stepTimes[i-1];
+                    avg += intervals[valid];
+                    valid++;
+                }
+            }
+            if (valid >= 2) {
+                avg /= valid;
+                for (int i = 0; i < valid; i++)
+                    variance += (intervals[i] - avg) * (intervals[i] - avg);
+                variance /= valid;
+            }
         }
 
-        // update the last accepted step time AFTER we've used it for debounce
-        lastStepTime = now;
-        lastActiveTime = now;
+        if (variance > 80000) return;
 
-        // counting logic: buffer until walking confirmed
+        // --- Walking entry logic ---
         if (!walking) {
-            bufferedSteps++;
+            if (cadence >= 35 && cadence <= 120)
+                bufferedSteps++;
+            else
+                bufferedSteps = 0;
+
+            if (bufferedSteps >= 5) {
+                walking = true;
+                stepCount += bufferedSteps;
+                bufferedSteps = 0;
+            }
         } else {
-            // already walking: increment step count normally
             stepCount++;
         }
     }
 
-    // --- Walking detection: compute avg delta using chronological order of buffer ---
-    if (!walking && totalStepsBuffer == CADENCE_WINDOW) {
-        // compute average delta between consecutive timestamps in chronological order
-        // oldest index: stepBufferIndex points to the next slot to be written,
-        // so oldest = stepBufferIndex (after wrap) and newest = stepBufferIndex-1
-        unsigned long totalDelta = 0;
-        for (int k = 0; k < CADENCE_WINDOW - 1; ++k) {
-            int idxA = (stepBufferIndex + k) % CADENCE_WINDOW;       // older
-            int idxB = (stepBufferIndex + k + 1) % CADENCE_WINDOW;   // newer
-            unsigned long delta = stepTimes[idxB] - stepTimes[idxA];
-            totalDelta += delta;
-        }
-        float avgDelta = (float)totalDelta / (CADENCE_WINDOW - 1);
+    // --- Walking exit logic ---
 
-        if (avgDelta >= 380.0f && avgDelta <= 2000.0f) {
-            // confirm walking and add buffered steps once
-            walking = true;
-            stepCount += 1;
-            bufferedSteps = 0;
-        } else {
-            // not walking — keep buffer but don't count steps
-         
-        }
-    }
-
-    // --- Stop walking if inactive, and clear buffers to avoid stale cadence ---
-    if (walking && (now - lastStepTime > 1500)) {
+if (walking) {
+    if ((now - lastStepTime) > 2500) {       // no steps for 2.5s
         walking = false;
-        bufferedSteps = 0;
-        totalStepsBuffer = 0;
-        intervalIndex = 0;
-        intervalFilled = false;
-        // clear arrays to avoid stale values (optional but safe)
-        for (int i = 0; i < CADENCE_WINDOW; ++i) {
-            stepIntervals[i] = 0;
-            stepTimes[i] = 0;
+        lowCadenceFrames = 0;
+    } else {
+        float cadence = getCadence();
+
+        if (cadence < 35 || cadence > 150)
+            lowCadenceFrames++;
+        else
+            lowCadenceFrames = 0;
+
+        if (lowCadenceFrames >= 3) {
+            walking = false;
+            lowCadenceFrames = 0;
         }
-        stepBufferIndex = 0;
     }
 }
-
+ 
+}
 
 // --- Getters ---
 unsigned long StepCounter::getStepCount() const {
     return stepCount;
 }
-float StepCounter::getCadence() const {
-    unsigned long now = millis();
-    int validCount = 0;
-    unsigned long sumIntervals = 0;
 
-    // Go through step times and keep only recent ones (within 5s)
-    for (int i = 1; i < totalStepsBuffer; i++) {
-        unsigned long t1 = stepTimes[(i - 1) % CADENCE_WINDOW];
-        unsigned long t2 = stepTimes[i % CADENCE_WINDOW];
-        if (now - t2 < 5000) {  // 5-second rolling window
-            sumIntervals += (t2 - t1);
-            validCount++;
+float StepCounter::getCadence() const {
+    const unsigned long WINDOW_MS = walking ? 4000 : 6000;
+    const unsigned long now = millis();
+
+    if (now - lastStepTime > 2500) return 0.0f;
+
+    unsigned long totalDelta = 0;
+    int validPairs = 0;
+    unsigned long prevTime = 0;
+    unsigned long intervals[CADENCE_WINDOW];
+    int intervalCount = 0;
+
+    for (int i = 0; i < CADENCE_WINDOW; i++) {
+        if (stepTimes[i] > 0 && (now - stepTimes[i]) <= WINDOW_MS) {
+            if (prevTime > 0) {
+                unsigned long diff = stepTimes[i] - prevTime;
+                if (diff > 200 && diff < 3000) {
+                    intervals[intervalCount++] = diff;
+                    totalDelta += diff;
+                }
+            }
+            prevTime = stepTimes[i];
         }
     }
 
-    if (validCount == 0) return 0.0f;
+    if (intervalCount < 2) return 0.0f;
 
-    float avgIntervalMs = (float)sumIntervals / validCount;
-    return (avgIntervalMs > 0) ? (60000.0f / avgIntervalMs) : 0.0f;
+    float avgInterval = (float)totalDelta / intervalCount;
+    unsigned long filteredSum = 0;
+    int filteredCount = 0;
+    for (int i = 0; i < intervalCount; i++) {
+        if (fabs((float)intervals[i] - avgInterval) < 800) {
+            filteredSum += intervals[i];
+            filteredCount++;
+        }
+    }
+
+    if (filteredCount == 0) return 0.0f;
+
+    float filteredAvg = (float)filteredSum / filteredCount;
+    float instantCadence = 60000.0f / filteredAvg;
+
+    static float smoothCadence = 0;
+    const float alpha = 0.6f;
+    smoothCadence = alpha * instantCadence + (1 - alpha) * smoothCadence;
+
+    return smoothCadence;
 }
 
 bool StepCounter::isWalking() const {
