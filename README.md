@@ -41,10 +41,10 @@ Step_Counter can work **two ways**:
 
 1. **Acceleration + Gyroscope Filtering**-Each frame computes total acceleration and rotation magnitudes:  
 
-aMag = sqrt(ax² + ay² + az²)
-gMag = sqrt(gx² + gy² + gz²)
-deltaA = |aMag - lastAMag|
-deltaG = |gMag - lastGMag|  
+aMag = sqrt(ax² + ay² + az²)   
+gMag = sqrt(gx² + gy² + gz²)  
+deltaA = |aMag - lastAMag|  
+deltaG = |gMag - lastGMag|    
 
 The thresholds adapt depending on whether the system is in entry or walking mode.  
 
